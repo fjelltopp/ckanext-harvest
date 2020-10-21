@@ -304,7 +304,7 @@ class Harvest(MixinPlugin, p.SingletonPlugin, DefaultDatasetForm, DefaultTransla
             return facets_dict
 
         return OrderedDict([
-            ('organization', p.toolkit._('Organizations')),
+            ('organization', p.toolkit._('Organization')),
             ('frequency', p.toolkit._('Frequency')),
             ('source_type', p.toolkit._('Type')),
         ])
