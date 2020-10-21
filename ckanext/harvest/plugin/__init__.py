@@ -303,9 +303,11 @@ class Harvest(MixinPlugin, p.SingletonPlugin, DefaultDatasetForm, DefaultTransla
         if package_type != 'harvest':
             return facets_dict
 
-        return OrderedDict([('frequency', 'Frequency'),
-                            ('source_type', 'Type'),
-                            ])
+        return OrderedDict([
+            ('organization', p.toolkit._('Organizations')),
+            ('frequency', p.toolkit._('Frequency')),
+            ('source_type', p.toolkit._('Type')),
+        ])
 
     def organization_facets(self, facets_dict, organization_type, package_type):
 
