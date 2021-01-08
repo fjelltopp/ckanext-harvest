@@ -9,23 +9,24 @@ msgstr ""
 "Project-Id-Version: ckanext-harvest 1.3.1\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2020-11-19 12:45+0000\n"
-"PO-Revision-Date: 2020-11-19 12:45+0000\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"PO-Revision-Date: 2020-12-15 11:20+0300\n"
 "Language: fr\n"
 "Language-Team: fr <LL@li.org>\n"
-"Plural-Forms: nplurals=2; plural=(n > 1)\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.7.0\n"
+"Last-Translator: \n"
+"X-Generator: Poedit 2.4.2\n"
 
 #: ckanext/harvest/helpers.py:104
 msgid "title"
-msgstr ""
+msgstr "titre"
 
 #: ckanext/harvest/utils.py:503
 msgid "Not authorized to see this page"
-msgstr ""
+msgstr "Vous ne disposez pas des droits nécessaires pour afficher cette page"
 
 #: ckanext/harvest/logic/auth/create.py:34
 #: ckanext/harvest/logic/auth/delete.py:18 ckanext/harvest/logic/auth/get.py:32
@@ -34,31 +35,35 @@ msgstr ""
 #: ckanext/harvest/utils.py:622 ckanext/harvest/utils.py:656
 #: ckanext/harvest/utils.py:682 ckanext/harvest/utils.py:713
 msgid "Harvest source not found"
-msgstr ""
+msgstr "Source de recolte introuvable"
 
 #: ckanext/harvest/templates/source/admin.html:15
 #: ckanext/harvest/templates/source/job/list.html:12
 #: ckanext/harvest/utils.py:543
 msgid "No jobs yet for this source"
-msgstr ""
+msgstr "Aucune sortie de données pour cette source"
 
 #: ckanext/harvest/utils.py:576 ckanext/harvest/utils.py:635
 msgid "Harvest job not found"
-msgstr ""
+msgstr "Données importee introuvable"
 
 #: ckanext/harvest/utils.py:632
 msgid "Harvest job stopped"
-msgstr ""
+msgstr "Importation des données arrêté"
 
 #: ckanext/harvest/utils.py:654
 msgid "Harvest will start shortly. Refresh this page for updates."
 msgstr ""
+"La récolte commencera sous peu. Actualisez cette page pour les mises à jour."
 
 #: ckanext/harvest/utils.py:661
 msgid ""
-"Cannot create new harvest jobs on inactive sources. First, please change "
-"the source status to \"active\"."
+"Cannot create new harvest jobs on inactive sources. First, please change the "
+"source status to \"active\"."
 msgstr ""
+"Impossible de créer de nouveaux emplois de récolte sur des sources "
+"inactives. Tout d’abord, s’il vous plaît changer le statut source en "
+"« actif »."
 
 #: ckanext/harvest/utils.py:666
 msgid "A harvest job has already been scheduled for this source"
@@ -78,25 +83,24 @@ msgstr ""
 
 #: ckanext/harvest/utils.py:737
 msgid "No content found"
-msgstr ""
+msgstr "Aucune contenu"
 
 #: ckanext/harvest/logic/action/update.py:690
 msgid ""
-"This is a failure-notification of the latest harvest job ({0}) set-up in "
-"{1}."
+"This is a failure-notification of the latest harvest job ({0}) set-up in {1}."
 msgstr ""
 
 #: ckanext/harvest/logic/action/update.py:694
 msgid "Harvest Source: {0}"
-msgstr ""
+msgstr "Source de récolte: {0}"
 
 #: ckanext/harvest/logic/action/update.py:696
 msgid "Harvester-Configuration: {0}"
-msgstr ""
+msgstr "Configuration d'importation: {0}"
 
 #: ckanext/harvest/logic/action/update.py:700
 msgid "Organization: {0}"
-msgstr ""
+msgstr "Organisation: {0}"
 
 #: ckanext/harvest/logic/action/update.py:703
 msgid "Harvest Job Id: {0}"
@@ -104,11 +108,11 @@ msgstr ""
 
 #: ckanext/harvest/logic/action/update.py:704
 msgid "Created: {0}"
-msgstr ""
+msgstr "Créé: {0}"
 
 #: ckanext/harvest/logic/action/update.py:705
 msgid "Finished: {0}"
-msgstr ""
+msgstr "Terminé: {0}"
 
 #: ckanext/harvest/logic/action/update.py:709
 msgid "Records in Error: {0}"
@@ -133,8 +137,8 @@ msgstr ""
 #: ckanext/harvest/logic/action/update.py:737
 msgid ""
 "You are receiving this email because you are currently set-up as "
-"Administrator for {0}. Please do not reply to this email as it was sent "
-"from a non-monitored address."
+"Administrator for {0}. Please do not reply to this email as it was sent from "
+"a non-monitored address."
 msgstr ""
 
 #: ckanext/harvest/logic/auth/create.py:19
@@ -210,39 +214,39 @@ msgstr ""
 #: ckanext/harvest/templates/snippets/job_details.html:26
 #: ckanext/harvest/templates/source/job/list.html:43
 msgid "errors"
-msgstr ""
+msgstr "errors"
 
 #: ckanext/harvest/templates/snippets/job_details.html:41
 msgid "Details"
-msgstr ""
+msgstr "Details"
 
 #: ckanext/harvest/templates/snippets/job_details.html:48
 msgid "Id"
-msgstr ""
+msgstr "Id"
 
 #: ckanext/harvest/templates/snippets/job_details.html:52
 msgid "Created"
-msgstr ""
+msgstr "Établi"
 
 #: ckanext/harvest/templates/snippets/job_details.html:60
 msgid "Started"
-msgstr ""
+msgstr "Commencé"
 
 #: ckanext/harvest/templates/snippets/job_details.html:68
 msgid "Finished"
-msgstr ""
+msgstr "Terminé"
 
 #: ckanext/harvest/templates/snippets/job_details.html:76
 msgid "Status"
-msgstr ""
+msgstr "État de la tâche"
 
 #: ckanext/harvest/templates/snippets/job_error_summary.html:18
 msgid "Count"
-msgstr ""
+msgstr "Compte"
 
 #: ckanext/harvest/templates/snippets/job_error_summary.html:19
 msgid "Message"
-msgstr ""
+msgstr "Message"
 
 #: ckanext/harvest/templates/snippets/package_list_empty.html:1
 msgid "There are no datasets associated to this harvest source."
@@ -305,10 +309,10 @@ msgstr ""
 
 #: ckanext/harvest/templates/source/admin_base.html:14
 msgid ""
-"This will re-run the harvesting for this source. Any updates at the "
-"source will overwrite the local datasets. Sources with a large number of "
-"datasets may take a significant amount of time to finish harvesting. "
-"Please confirm you would like us to start reharvesting."
+"This will re-run the harvesting for this source. Any updates at the source "
+"will overwrite the local datasets. Sources with a large number of datasets "
+"may take a significant amount of time to finish harvesting. Please confirm "
+"you would like us to start reharvesting."
 msgstr ""
 
 #: ckanext/harvest/templates/source/admin_base.html:17
@@ -383,10 +387,10 @@ msgstr ""
 
 #: ckanext/harvest/templates/source/new.html:30
 msgid ""
-"Harvest sources allow importing remote metadata into this catalog. Remote"
-" sources can be other catalogs such as other CKAN instances, CSW servers "
-"or Web Accessible Folders (WAF) (depending on the actual harvesters "
-"enabled for this instance)."
+"Harvest sources allow importing remote metadata into this catalog. Remote "
+"sources can be other catalogs such as other CKAN instances, CSW servers or "
+"Web Accessible Folders (WAF) (depending on the actual harvesters enabled for "
+"this instance)."
 msgstr ""
 
 #: ckanext/harvest/templates/source/new_source_form.html:11
@@ -439,15 +443,15 @@ msgstr ""
 
 #: ckanext/harvest/templates/source/new_source_form.html:95
 msgid ""
-"This will flag the source as deleted but keep all its datasets and "
-"previous jobs. Are you sure you want to delete this harvest source?"
+"This will flag the source as deleted but keep all its datasets and previous "
+"jobs. Are you sure you want to delete this harvest source?"
 msgstr ""
 
 #: ckanext/harvest/templates/source/new_source_form.html:96
 msgid ""
-"Warning: Apart from deleting this source, this command will remove all "
-"its datasets, as well as all previous job reports. Are you sure you want "
-"to continue?"
+"Warning: Apart from deleting this source, this command will remove all its "
+"datasets, as well as all previous job reports. Are you sure you want to "
+"continue?"
 msgstr ""
 
 #: ckanext/harvest/templates/source/new_source_form.html:99
@@ -501,33 +505,33 @@ msgstr ""
 
 #: ckanext/harvest/templates/source/job/list.html:20
 msgid "Job: "
-msgstr ""
+msgstr "Tâche"
 
 #: ckanext/harvest/templates/source/job/list.html:27
 msgid "Started:"
-msgstr ""
+msgstr "Commencé"
 
 #: ckanext/harvest/templates/source/job/list.html:29
 #: ckanext/harvest/templates/source/job/list.html:34
 msgid "Not yet"
-msgstr ""
+msgstr "Pas encore"
 
 #: ckanext/harvest/templates/source/job/list.html:32
 msgid "Finished:"
-msgstr ""
+msgstr "Complete:"
 
 #: ckanext/harvest/templates/source/job/read.html:3
 #: ckanext/harvest/templates/source/job/read.html:12
 msgid "Job Report"
-msgstr ""
+msgstr "Rapport de situation"
 
 #: ckanext/harvest/templates/source/job/read.html:9
 msgid "Back to job list"
-msgstr ""
+msgstr "Retour a la list des tâches"
 
 #: ckanext/harvest/templates/source/job/read.html:19
 msgid "No errors for this job"
-msgstr ""
+msgstr "Aucune error pour cette tâche"
 
 #: ckanext/harvest/templates/source/job/read.html:23
 msgid "Only the 20 most frequent errors are shown"
@@ -553,4 +557,3 @@ msgstr ""
 #: ckanext/harvest/templates/source/job/read.html:73
 msgid "Local content"
 msgstr ""
-
