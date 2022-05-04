@@ -3,10 +3,10 @@
 import logging
 import re
 import uuid
-import six
 
-from sqlalchemy import exists
+from sqlalchemy import exists, and_
 from sqlalchemy.sql import update, bindparam
+from sqlalchemy.orm import contains_eager
 
 from ckantoolkit import config
 
@@ -23,6 +23,7 @@ from ckanext.harvest.model import (HarvestObject, HarvestGatherError,
 
 from ckan.plugins.core import SingletonPlugin, implements
 from ckanext.harvest.interfaces import IHarvester
+from ckanext.harvest.logic.schema import unicode_safe
 
 if p.toolkit.check_ckan_version(min_version='2.3'):
     from ckan.lib.munge import munge_tag
@@ -277,7 +278,7 @@ class HarvesterBase(SingletonPlugin):
         try:
             # Change default schema
             schema = default_create_package_schema()
-            schema['id'] = [ignore_missing, six.text_type]
+            schema['id'] = [ignore_missing, unicode_safe]
             schema['__junk'] = [ignore]
 
             # Check API version
@@ -320,6 +321,9 @@ class HarvesterBase(SingletonPlugin):
                     package_dict.setdefault('name',
                                             existing_package_dict['name'])
 
+                    for field in p.toolkit.aslist(config.get('ckan.harvest.not_overwrite_fields')):
+                        if field in existing_package_dict:
+                            package_dict[field] = existing_package_dict[field]
                     new_package = p.toolkit.get_action(
                         'package_update' if package_dict_form == 'package_show'
                         else 'package_update_rest')(context, package_dict)
@@ -414,25 +418,22 @@ class HarvesterBase(SingletonPlugin):
     def last_error_free_job(cls, harvest_job):
         # TODO weed out cancelled jobs somehow.
         # look for jobs with no gather errors
-        jobs = \
-            model.Session.query(HarvestJob) \
-                 .filter(HarvestJob.source == harvest_job.source) \
-                 .filter(
-                HarvestJob.gather_started != None  # noqa: E711
-            ).filter(HarvestJob.status == 'Finished') \
-                 .filter(HarvestJob.id != harvest_job.id) \
-                 .filter(
-                     ~exists().where(
-                         HarvestGatherError.harvest_job_id == HarvestJob.id)) \
-                 .order_by(HarvestJob.gather_started.desc())
+        jobs = (model.Session.query(HarvestJob)
+                .filter(HarvestJob.source == harvest_job.source)
+                .filter(HarvestJob.gather_started != None)  # noqa: E711
+                .filter(HarvestJob.status == 'Finished')
+                .filter(HarvestJob.id != harvest_job.id)
+                .filter(
+            ~exists().where(
+                HarvestGatherError.harvest_job_id == HarvestJob.id))
+                .outerjoin(HarvestObject,
+                           and_(HarvestObject.harvest_job_id == HarvestJob.id,
+                                HarvestObject.current == False,  # noqa: E712
+                                HarvestObject.report_status != 'not modified'))
+                .options(contains_eager(HarvestJob.objects))
+                .order_by(HarvestJob.gather_started.desc()))
         # now check them until we find one with no fetch/import errors
-        # (looping rather than doing sql, in case there are lots of objects
-        # and lots of jobs)
+        # if objects count is 0, job was error free
         for job in jobs:
-            for obj in job.objects:
-                if obj.current is False and \
-                        obj.report_status != 'not modified':
-                    # unsuccessful, so go onto the next job
-                    break
-            else:
+            if len(job.objects) == 0:
                 return job
