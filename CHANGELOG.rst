@@ -12,6 +12,78 @@ Unreleased_
 ***********
 
 ***********
+1.4.0_ - 2022-04-20
+***********
+
+Changed
+-------
+
+- Add ckan.harvest.not_overwrite_fields #472
+- Support for Bootstrap 5 templates #490
+- Support for CKAN 2.10 #492 #496
+
+Fixed
+-----
+
+- Fix JSONDecode error #489
+- Check if email exists before sending notification #498
+
+
+***********
+1.3.4_ - 2022-01-24
+***********
+
+Changed
+-------
+
+- Changes function calls to `render_jinja2` over to `render` as the former is
+  no longer used. #459
+- Set the default value for MQ_TYPE to redis #463
+- Add option `keep-current` to `clearsource_history` command #484
+
+Fixed
+-----
+
+- Fix JSON serialization for Python3 #450
+- Make `Rehavest` and `Clear` buttons work again #452
+- Fix error when running run-test #466
+- Fix timeout calculation #482
+- Fix harvest extras for packages #458
+
+
+***********
+1.3.3_ - 2021-03-26
+***********
+
+Changed
+-------
+
+- Migrate tests from Travis CI to GitHub Actions
+- Optimize last error free job detection #437
+
+Fixed
+-----
+- Improve timeout detection #431
+- Check if Redis key is available #432
+- Include webassets.yml in MANIFEST
+
+
+***********
+1.3.2_ - 2020-10-08
+***********
+
+Changed
+-------
+
+- Calculate timeouts based on last finished object instead of job creation time #418
+
+Fixed
+-----
+
+- Fix resubmitting harvest objects to Redis fetch queue #421
+
+
+***********
 1.3.1_ - 2020-09-01
 ***********
 
@@ -245,7 +317,9 @@ Categories
 - ``Fixed`` for any bug fixes.
 - ``Security`` to invite users to upgrade in case of vulnerabilities.
 
-.. _Unreleased: https://github.com/ckan/ckanext-harvest/compare/v1.3.0...HEAD
+.. _Unreleased: https://github.com/ckan/ckanext-harvest/compare/v1.3.2...HEAD
+.. _1.3.2: https://github.com/ckan/ckanext-harvest/compare/v1.3.1...v1.3.2
+.. _1.3.1: https://github.com/ckan/ckanext-harvest/compare/v1.3.0...v1.3.1
 .. _1.3.0: https://github.com/ckan/ckanext-harvest/compare/v1.2.1...v1.3.0
 .. _1.2.1: https://github.com/ckan/ckanext-harvest/compare/v1.2.0...v1.2.1
 .. _1.2.0: https://github.com/ckan/ckanext-harvest/compare/v1.1.4...v1.2.0
