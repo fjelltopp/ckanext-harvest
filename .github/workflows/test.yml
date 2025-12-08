@@ -36,7 +36,6 @@ jobs:
 
     container:
       image: ckan/${{ matrix.ckan-version }}
-      options: --user root
     services:
       solr:
         image: ckan/ckan-solr:${{ matrix.ckan-solr-version }}
