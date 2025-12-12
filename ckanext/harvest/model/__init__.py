@@ -47,28 +47,34 @@ def setup():
         define_harvester_tables()
         log.debug('Harvest tables defined in memory')
 
-    if not model.package_table.exists():
+    # SQLAlchemy 1.4 compatibility: use inspector instead of table.exists()
+    from ckan.model.meta import engine
+    if engine is None:
+        log.debug('Engine not available, harvest table creation deferred')
+        return
+    
+    inspector = Inspector.from_engine(engine)
+    
+    if not inspector.has_table(model.package_table.name):
         log.debug('Harvest table creation deferred')
         return
 
-    if not harvest_source_table.exists():
+    if not inspector.has_table(harvest_source_table.name):
 
         # Create each table individually rather than
         # using metadata.create_all()
-        harvest_source_table.create()
-        harvest_job_table.create()
-        harvest_object_table.create()
-        harvest_gather_error_table.create()
-        harvest_object_error_table.create()
-        harvest_object_extra_table.create()
-        harvest_log_table.create()
+        harvest_source_table.create(engine)
+        harvest_job_table.create(engine)
+        harvest_object_table.create(engine)
+        harvest_gather_error_table.create(engine)
+        harvest_object_error_table.create(engine)
+        harvest_object_extra_table.create(engine)
+        harvest_log_table.create(engine)
 
         log.debug('Harvest tables created')
     else:
-        from ckan.model.meta import engine
         log.debug('Harvest tables already exist')
         # Check if existing tables need to be updated
-        inspector = Inspector.from_engine(engine)
 
         # Check if harvest_log table exist - needed for existing users
         if 'harvest_log' not in inspector.get_table_names():
