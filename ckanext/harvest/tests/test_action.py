@@ -176,7 +176,7 @@ class TestHarvestSourceActionUpdate(HarvestSourceFixtureMixin,
             "name": "test-source-action-updated",
             "title": "Test source action updated",
             "notes": "Test source action desc updated",
-            "source_type": "test",
+            "source_type": "test-for-action",
             "frequency": "MONTHLY",
             "config": json.dumps({"custom_option": ["c", "d"]})
         })
@@ -185,7 +185,7 @@ class TestHarvestSourceActionUpdate(HarvestSourceFixtureMixin,
 
         for key in set(('url', 'name', 'title', 'notes', 'source_type',
                         'frequency', 'config')):
-            assert source_dict[key], result[key] == "Key: %s" % key
+            assert source_dict[key] == result[key], "Key: %s" % key
 
         # Check that source was actually updated
         source = harvest_model.HarvestSource.get(result['id'])
