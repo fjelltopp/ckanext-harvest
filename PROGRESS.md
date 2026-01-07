@@ -189,3 +189,33 @@ The existing harvester code already handles group matching correctly - it tries 
 
 ---
 
+### 6. Fix test_update harvester type typo
+
+**Date**: 2026-01-07
+
+**Problem**:
+Test `TestHarvestSourceActionUpdate::test_update` failed with:
+```
+ValidationError: {'source_type': ["Unknown harvester type: test. Registered types: ['test-for-action']"]}
+```
+
+**Root Cause**:
+- The test had a typo on line 179: `"source_type": "test"`
+- The only registered harvester for tests is `"test-for-action"` (defined in MockHarvesterForActionTests)
+- The test was trying to update a harvest source to use a non-existent harvester type
+
+**Solution**:
+- Changed line 179 from `"source_type": "test"` to `"source_type": "test-for-action"`
+- Also fixed assertion syntax bug on line 188: changed `assert source_dict[key], result[key]` to `assert source_dict[key] == result[key]` for proper comparison
+
+**Files Modified**:
+- `ckanext/harvest/tests/test_action.py`:
+  - Line 179: Fixed source_type typo
+  - Line 188: Fixed assertion comparison syntax
+
+**Status**: ✅ FIXED - Test passes
+
+**Test Result**: ✅ PASSED
+
+---
+
