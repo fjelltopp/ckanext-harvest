@@ -219,3 +219,42 @@ ValidationError: {'source_type': ["Unknown harvester type: test. Registered type
 
 ---
 
+### 7. Fix harvest_job_create authorization check for CKAN 2.11
+
+**Date**: 2026-01-07
+
+**Problem**:
+Test `TestActions::test_harvest_job_create_as_admin` failed with:
+```
+ValidationError: {'message': 'Missing id, can not get Package object'}
+```
+
+**Root Cause**:
+- The `harvest_job_create` auth function (line 38) was passing the wrong data_dict to `check_access('package_update')`
+- It passed `data_dict` containing `{'source_id': ..., 'run': True}`
+- But `package_update` auth expects a data_dict with an `'id'` field (the package ID)
+- In CKAN 2.11, the authorization system is stricter about required fields
+
+**Solution**:
+Changed line 38 in `ckanext/harvest/logic/auth/create.py`:
+- Before: `pt.check_access('package_update', context, data_dict)`
+- After: `pt.check_access('package_update', context, {'id': pkg.id})`
+
+This passes the correct package ID to the package_update authorization check.
+
+**Files Modified**:
+- `ckanext/harvest/logic/auth/create.py`:
+  - Line 39: Pass `{'id': pkg.id}` instead of original data_dict
+  - Added comment explaining the fix
+
+**Status**: ✅ FIXED - Test passes
+
+**Test Result**: ✅ PASSED
+
+**Debug Process**:
+- Added debug prints to trace the data_dict being passed
+- Confirmed package was found correctly but wrong data passed to auth check
+- Removed debug prints after fix confirmed
+
+---
+
