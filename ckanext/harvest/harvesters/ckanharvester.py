@@ -439,12 +439,12 @@ class CKANHarvester(HarvesterBase):
                                 log.error('Could not get remote group %s', group_)
                                 continue
 
-                            for key in ['packages', 'created', 'users', 'groups', 'tags', 'extras', 'display_name']:
+                            for key in ['packages', 'created', 'users', 'groups', 'tags', 'extras', 'display_name', 'id']:
                                 group.pop(key, None)
 
-                            get_action('group_create')(base_context.copy(), group)
-                            log.info('Group %s has been newly created', group_)
-                            validated_groups.append({'id': group['id'], 'name': group['name']})
+                            created_group = get_action('group_create')(base_context.copy(), group)
+                            log.info('Group %s has been newly created', created_group)
+                            validated_groups.append({'id': created_group['id'], 'name': created_group['name']})
 
                 package_dict['groups'] = validated_groups
 

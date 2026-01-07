@@ -168,8 +168,8 @@ class TestCkanHarvester(object):
             harvester=CKANHarvester(),
             config=json.dumps(config))
         assert 'dataset1-id' in results_by_guid
-        # Check that the remote group was created locally
-        call_action('group_show', {}, id=mock_ckan.GROUPS[0]['id'])
+        # Check that the remote group was created locally (by name, not id, since id is auto-generated in CKAN 2.11)
+        call_action('group_show', {}, id=mock_ckan.GROUPS[0]['name'])
 
     def test_harvest_info_in_package_show(self):
         results_by_guid = run_harvest(
