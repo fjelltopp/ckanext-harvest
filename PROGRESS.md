@@ -258,3 +258,182 @@ This passes the correct package ID to the package_update authorization check.
 
 ---
 
+### 8. Fix test_new_form_is_rendered pytest compatibility (IN PROGRESS)
+
+**Date**: 2026-01-07
+
+**Problem**:
+Test `TestBlueprint::test_new_form_is_rendered` failed with multiple issues:
+
+1. First error: `AttributeError: 'TestBlueprint' object has no attribute 'extra_environ'`
+2. Second error (after first fix): `403 FORBIDDEN: Unauthorized to create a package`
+
+**Root Cause**:
+
+**Issue 1 - setup() method not called by pytest**:
+- The test class had a `setup()` method (line 19) that creates `self.extra_environ`
+- In pytest (used by CKAN 2.11), the method should be named `setup_method()` to be called before each test
+- The old `setup()` name worked with nose but not with pytest
+
+**Issue 2 - REMOTE_USER encoding incompatibility**:
+- Tests were setting `REMOTE_USER` as bytes: `sysadmin['name'].encode('ascii')`
+- In CKAN 2.11 with Flask, `REMOTE_USER` should be a string, not bytes
+- This caused authentication to fail, resulting in 403 errors
+
+**Solution Applied**:
+
+**Fix 1 - Rename setup to setup_method**:
+- Changed `def setup(self):` to `def setup_method(self):` on line 19
+- This ensures pytest calls the method before each test
+
+**Fix 2 - Remove .encode('ascii') from REMOTE_USER**:
+- Line 21: `self.extra_environ = {'REMOTE_USER': sysadmin['name']}` (removed .encode)
+- Line 67: `env = {"REMOTE_USER": sysadmin['name']}` (removed .encode)
+- Line 92: `env = {"REMOTE_USER": sysadmin['name']}` (removed .encode)
+- Line 105: `env = {"REMOTE_USER": sysadmin['name']}` (removed .encode)
+
+**Files Modified**:
+- `ckanext/harvest/tests/test_blueprint.py`:
+  - Line 19: Changed `setup()` to `setup_method()`
+  - Lines 21, 67, 92, 105: Removed `.encode('ascii')` from REMOTE_USER assignments
+
+**Status**: ⏳ IN PROGRESS - Authorization issue not yet resolved
+
+**Investigation Summary**:
+
+After applying both initial fixes (setup_method and REMOTE_USER), test still fails with:
+```
+403 FORBIDDEN: Unauthorized to create a package
+```
+
+**Attempted Solutions**:
+
+1. **Added pytest config markers** (lines 17-19 in test_blueprint.py):
+   - `@pytest.mark.ckan_config('ckan.auth.create_unowned_dataset', True)`
+   - `@pytest.mark.ckan_config('ckan.auth.create_dataset_if_not_in_organization', True)`
+   - Result: No effect, still 403
+
+2. **Created organization for sysadmin** (setup_method):
+   - Created organization with sysadmin as admin
+   - Passed organization ID in URL: `url_for('harvest_new', owner_org=self.org['id'])`
+   - URL became: `/harvest/new?owner_org=<org-id>`
+   - Result: Still 403, organization context didn't help
+
+3. **Added debug logging**:
+   - Added prints to setup_method showing sysadmin details
+   - Added prints to test showing URL and response
+   - Added prints to `harvest_source_create` auth function
+   - Observation: The `harvest_source_create` auth function was never called
+   - The 403 happens at CKAN's `package_create` authorization level before reaching harvest plugin auth
+
+4. **Added auth config to test.ini** (lines 18-25):
+   - Multiple `ckan.auth.*` settings added to configuration
+   - Settings include `create_unowned_dataset`, `create_dataset_if_not_in_organization`, etc.
+   - Result: Not yet tested
+
+**Current Understanding**:
+
+- The `/harvest/new` route uses CKAN's standard package/new controller (since harvest sources are a package type)
+- CKAN checks `package_create` authorization before the view renders
+- Even with sysadmin privileges, CKAN 2.11 may have stricter requirements for accessing the new form
+- The authorization check happens at the controller/view level, not in the harvest plugin's auth functions
+- Organization context via URL parameter didn't resolve the authorization issue
+
+**Files Modified**:
+- `ckanext/harvest/tests/test_blueprint.py`:
+  - Line 21: Changed `setup()` to `setup_method()`
+  - Lines 21, 67, 92, 105: Removed `.encode('ascii')` from REMOTE_USER
+  - Cleaned up debug prints
+- `ckanext/harvest/logic/auth/create.py`:
+  - Cleaned up debug prints
+- `test.ini`:
+  - Lines 18-25: Added comprehensive `ckan.auth.*` configuration settings
+
+**Next Steps**:
+- Test with the new auth config settings in test.ini
+- If still failing, investigate CKAN 2.11 core changes to package creation authorization
+- Consider checking if there's a difference in how CKAN 2.11 handles IDatasetForm authorization
+- May need to look at CKAN 2.11 source code to understand authorization flow changes
+- Alternative: Check if other CKAN extensions have solved similar issues in their 2.11 migrations
+
+---
+
+### 9. Fix test_new_form_is_rendered for CKAN 2.11 (COMPLETED)
+
+**Date**: 2026-01-08
+
+**Problem**:
+Test `TestBlueprint::test_new_form_is_rendered` failed with:
+```
+403 FORBIDDEN: Unauthorized to create a package
+```
+
+Even though the user was a sysadmin and properly authenticated.
+
+**Root Cause Analysis**:
+
+Through debugging, discovered that CKAN 2.11's authorization flow has changed:
+
+1. **pytest compatibility**: The `setup()` method is not called by pytest; must be `setup_method()`
+2. **Flask REMOTE_USER**: CKAN 2.11 uses Flask which expects string, not bytes (`.encode('ascii')` breaks auth)
+3. **Authorization timing**: In CKAN 2.11, `package_create` auth is checked BEFORE showing the form
+4. **Empty data_dict**: When viewing `/harvest/new`, the auth function receives empty `data_dict` (no 'type' field)
+5. **Missing user in context**: The `context['user']` is empty even though REMOTE_USER is set in environ
+
+**The Core Issue**:
+
+CKAN 2.11 calls `package_create` authorization before rendering the creation form. At this point:
+- `data_dict` is empty `{}` (package type not yet determined from URL)
+- `context['user']` is empty `''` (not loaded from Flask's REMOTE_USER yet)
+- CKAN's default auth denies access because no user is authenticated
+
+**Solution**:
+
+**Part 1 - Test Compatibility** (test_blueprint.py):
+- Changed `setup()` to `setup_method()` for pytest (line 19)
+- Removed `.encode('ascii')` from REMOTE_USER (lines 22, 69, 94, 107)
+- Flask expects strings, not bytes
+
+**Part 2 - Authorization Override** (logic/auth/create.py):
+Added custom `package_create` auth function that:
+1. **Loads user from Flask request** (lines 31-44):
+   - If `context['user']` is empty, loads from `request.environ['REMOTE_USER']`
+   - Also loads user object into context for sysadmin checks
+   - Includes detailed comment explaining why this is necessary (lines 20-30)
+
+2. **Allows sysadmins for harvest or form viewing** (lines 46-56):
+   - For sysadmins: allows if `package_type == 'harvest'` OR `data_dict` is empty
+   - Empty `data_dict` indicates viewing the form (not submitting data)
+
+3. **Delegates to CKAN default for others** (line 61):
+   - Non-sysadmins and non-harvest packages use CKAN's default authorization
+
+**Code Quality Improvements**:
+- Moved Flask import to module level (lines 6-10) - best practice, no imports inside functions
+- Added comprehensive comments explaining CKAN 2.11 authorization flow issue
+- Used try/except for Flask import for backwards compatibility
+
+**Files Modified**:
+- `ckanext/harvest/tests/test_blueprint.py`:
+  - Line 19: `setup()` → `setup_method()`
+  - Lines 22, 69, 94, 107: Removed `.encode('ascii')` from REMOTE_USER
+
+- `ckanext/harvest/logic/auth/create.py`:
+  - Lines 6-10: Added Flask import at module level
+  - Lines 13-61: Added `package_create()` auth function with detailed comments
+  - Imports: Added `import ckan.logic.auth.create as create_auth`
+
+**Status**: ✅ FIXED - Test passes
+
+**Test Result**: ✅ PASSED
+
+**Key Learning**:
+In CKAN 2.11, form viewing triggers authorization checks with empty `data_dict`. Extensions must handle this case by:
+1. Loading user from Flask's request environ if not in context
+2. Allowing appropriate users (sysadmins) for empty data_dict (form viewing)
+3. Delegating to CKAN's default auth for actual creation operations
+
+This pattern may be needed for other custom dataset types in CKAN 2.11.
+
+---
+
