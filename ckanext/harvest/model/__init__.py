@@ -11,7 +11,6 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import backref, relation
 from sqlalchemy.exc import InvalidRequestError
 
-from ckan import model
 from ckan.model.meta import metadata, mapper, Session
 from ckan.model.types import make_uuid
 from ckan.model.domain_object import DomainObject

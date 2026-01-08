@@ -1,6 +1,5 @@
 from ckan.plugins import toolkit as pt
 from ckanext.harvest.logic.auth import user_is_sysadmin
-import ckan.authz as authz
 import ckan.logic.auth.create as create_auth
 
 try:
