@@ -574,3 +574,90 @@ def func(items=None):
 
 ---
 
+### 12. Address PR Review Comments - Code Quality Improvements
+
+**Date**: 2026-01-08
+
+**Problem**:
+GitHub Copilot PR review identified several code quality issues in the authorization functions:
+1. Duplicate user loading logic between `package_create` and `package_update`
+2. Inconsistent Flask import patterns (module-level vs function-level)
+3. Empty except clauses without explanatory comments
+4. Fragile condition checks (`not data_dict`, `not data_dict.get('name')`) without clear documentation
+
+**Root Cause**:
+During the CKAN 2.11 migration, we added workarounds for Flask authorization issues. These workarounds resulted in:
+- Code duplication: Both `create.py` and `update.py` had nearly identical logic for loading users from Flask request environ
+- Import inconsistency: `create.py` used module-level Flask import, `update.py` used function-level import
+- Unclear intent: Empty except clauses and fragile conditions lacked explanatory comments
+
+**Solution**:
+
+1. **Extract Shared Helper Function**:
+   - Created `load_user_from_flask_request()` in `ckanext/harvest/logic/auth/__init__.py`
+   - Moved Flask import to module-level in `__init__.py`
+   - Both `package_create` and `package_update` now use this shared helper
+   - Eliminated ~20 lines of duplicate code
+
+2. **Consistent Import Pattern**:
+   - Flask import now at module-level in `__init__.py` only
+   - Removed Flask imports from both `create.py` and `update.py`
+   - Both files import `load_user_from_flask_request` helper instead
+
+3. **Added Explanatory Comments**:
+   - Helper function: Explains that failures are intentionally ignored to fall back to CKAN defaults
+   - `package_create`: Explains that sysadmin check failures fall back to default CKAN auth logic
+   - All empty except clauses now have clear explanations of why errors are caught and ignored
+
+4. **Improved Documentation for Fragile Conditions**:
+   - `package_create` (line 23-26): Added detailed NOTE explaining when empty `data_dict` occurs (GET on /harvest/new) and why it indicates form viewing
+   - `package_update` (line 26-31): Added detailed NOTE explaining when `data_dict.get('name')` is missing (GET on /harvest/edit/<id>) and the specific conditions for form viewing
+
+**Files Modified**:
+- `ckanext/harvest/logic/auth/__init__.py`:
+  - Added Flask import at module-level (lines 4-8)
+  - Added `load_user_from_flask_request()` helper function (lines 26-59)
+
+- `ckanext/harvest/logic/auth/create.py`:
+  - Removed Flask import (previously lines 5-9)
+  - Added import of `load_user_from_flask_request` helper (line 2)
+  - Replaced duplicate user loading logic with helper call (line 14)
+  - Added detailed NOTE about empty data_dict condition (lines 23-26)
+  - Added comment to except clause (lines 29-31)
+
+- `ckanext/harvest/logic/auth/update.py`:
+  - Removed function-level Flask import (previously lines 18-21)
+  - Added import of `load_user_from_flask_request` helper (line 2)
+  - Replaced duplicate user loading logic with helper call (line 17)
+  - Added detailed NOTE about missing 'name' condition (lines 26-31)
+
+**Status**: ✅ COMPLETED
+
+**Additional Fix - AnonymousUser Edge Case**:
+
+After initial implementation, test `test_edit_form_is_rendered` failed with:
+```
+AttributeError: 'AnonymousUser' object has no attribute 'sysadmin'
+```
+
+**Root Cause**: In CKAN 2.11, `context['auth_user_obj']` can be set to an `AnonymousUser` object (for unauthenticated requests), which doesn't have a `sysadmin` attribute.
+
+**Solution**: Changed `user_obj.sysadmin` to `getattr(user_obj, 'sysadmin', False)` in `update.py:22` to safely handle both regular User objects and AnonymousUser objects.
+
+**Test Result**: All 102 tests passing ✅
+
+**Benefits**:
+- **DRY Principle**: Eliminated code duplication, single source of truth for user loading logic
+- **Maintainability**: Changes to user loading logic now only need to be made in one place
+- **Clarity**: Comments explain the "why" behind fragile conditions and empty except clauses
+- **Consistency**: Uniform import pattern across all auth modules
+
+**Key Learning**:
+When adding workarounds for framework issues:
+- Extract shared logic into helper functions immediately
+- Document unusual patterns (like empty except clauses) with explanatory comments
+- Explain "fragile" conditions that rely on framework-specific behavior
+- Keep import patterns consistent across related modules
+
+---
+

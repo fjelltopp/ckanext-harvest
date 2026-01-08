@@ -1,6 +1,12 @@
 from ckan.plugins import toolkit as pt
 from ckanext.harvest import model as harvest_model
 
+try:
+    from flask import request
+except ImportError:
+    # Flask not available (shouldn't happen in CKAN 2.11+)
+    request = None
+
 
 def user_is_sysadmin(context):
     '''
@@ -15,6 +21,42 @@ def user_is_sysadmin(context):
         raise pt.Objectpt.ObjectNotFound('User {0} not found').format(user)
 
     return user_obj.sysadmin
+
+
+def load_user_from_flask_request(context):
+    """
+    Load user from Flask request environ into context if not already present.
+
+    In CKAN 2.11, when accessing harvest forms, authorization checks happen
+    before the user is loaded into context, even though REMOTE_USER is set
+    in the Flask request environ. This helper ensures the user is loaded
+    for proper authorization checks.
+
+    Args:
+        context: CKAN context dict
+
+    Returns:
+        None (modifies context in-place)
+    """
+    if not request:
+        return
+
+    user = context.get('user', '')
+    if not user:
+        try:
+            user = request.environ.get('REMOTE_USER', '')
+            if user:
+                context['user'] = user
+                # Load user object into context for sysadmin checks
+                model = context.get('model')
+                if model:
+                    user_obj = model.User.get(user)
+                    if user_obj:
+                        context['auth_user_obj'] = user_obj
+        except Exception:
+            # Intentionally ignore failures when loading user from request
+            # so that authorization can safely fall back to CKAN defaults
+            pass
 
 
 def _get_object(context, data_dict, name, class_name):

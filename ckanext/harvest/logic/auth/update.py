@@ -1,5 +1,5 @@
 from ckan.plugins import toolkit as pt
-from ckanext.harvest.logic.auth import user_is_sysadmin
+from ckanext.harvest.logic.auth import user_is_sysadmin, load_user_from_flask_request
 import ckan.logic.auth.update as update_auth
 
 
@@ -13,31 +13,23 @@ def package_update(context, data_dict):
 
     See package_create in logic/auth/create.py for detailed explanation.
     """
-    # Import Flask request inside function to avoid "outside request context" error
-    # during plugin initialization
-    try:
-        from flask import request
-    except ImportError:
-        request = None
-
-    # Load user from Flask request if not in context (CKAN 2.11 Flask issue)
-    if request and not context.get('user'):
-        user = request.environ.get('REMOTE_USER', '')
-        context['user'] = user
-        if user:
-            try:
-                user_obj = context['model'].User.get(user)
-                context['auth_user_obj'] = user_obj
-            except Exception:
-                pass
+    # Load user from Flask request if not already in context (CKAN 2.11 Flask issue)
+    load_user_from_flask_request(context)
 
     # For sysadmins viewing harvest edit forms, allow access
     user_obj = context.get('auth_user_obj')
-    if user_obj and user_obj.sysadmin:
+    # Use getattr to safely check sysadmin attribute (auth_user_obj might be AnonymousUser)
+    if user_obj and getattr(user_obj, 'sysadmin', False):
         package = context.get('package')
         package_type = package.type if package else data_dict.get('type')
 
         # Allow if editing harvest sources or viewing the edit form (minimal data_dict)
+        # NOTE: In CKAN 2.11, when rendering the harvest edit form (GET on /harvest/edit/<id>),
+        #       package_update can be called with a minimal data_dict that does not yet include
+        #       the package name. In that specific "view form" case, we rely on the combination
+        #       of (a) having a package object in the context and (b) data_dict missing 'name'
+        #       to grant sysadmins access to the edit form. This should not be treated as a
+        #       general indicator that a package update without a name is always safe.
         if package_type == 'harvest' or (package and not data_dict.get('name')):
             return {'success': True}
 
