@@ -437,3 +437,67 @@ This pattern may be needed for other custom dataset types in CKAN 2.11.
 
 ---
 
+### 10. Fix _get_logic_functions to handle Flask LocalProxy and modules
+
+**Date**: 2026-01-08
+
+**Problem**:
+Test `test_edit_form_is_rendered` failed with:
+```
+RuntimeError: Working outside of request context.
+```
+
+And then after initial fix:
+```
+AttributeError: module 'logging' has no attribute '__module__'
+```
+
+**Root Cause**:
+
+1. In issue #9, we imported Flask's `request` object in `ckanext/harvest/logic/auth/create.py` to fix authorization
+2. The `_get_logic_functions()` function in `ckanext/harvest/plugin/__init__.py` iterates through all auth module items to collect authorization functions
+3. When it encounters the `request` object (a Flask `LocalProxy`), it tries to check `hasattr(value, '__call__')` and `value.__module__`
+4. Accessing a `LocalProxy` outside of a Flask request context raises `RuntimeError`
+5. Similarly, imported modules (like `logging`) don't have a `__module__` attribute, causing `AttributeError`
+6. This happens during test setup when creating a `HarvestSource` with the factory
+
+**Solution**:
+
+Modified `_get_logic_functions()` in `ckanext/harvest/plugin/__init__.py` (lines 361-389) to:
+
+1. **Check for underscore prefix first** (line 373):
+   - Skip items starting with `_` early
+
+2. **Wrap attribute access in try-except** (lines 381-389):
+   - Safely check `hasattr(value, '__call__')` 
+   - Check if value has `__module__` attribute before accessing it using `hasattr(value, '__module__')`
+   - Only access `value.__module__` if the attribute exists
+   - Catch both `RuntimeError` (Flask LocalProxy) and `AttributeError` (other edge cases)
+
+3. **Added detailed comments** (lines 375-379):
+   - Explains Flask LocalProxy issue
+   - Explains module attribute issue
+   - Documents why try-except is necessary
+
+**Files Modified**:
+- `ckanext/harvest/plugin/__init__.py`:
+  - Lines 361-389: Updated `_get_logic_functions()` with safer attribute checking
+  - Added check for `__module__` attribute existence before access
+  - Expanded exception handling to catch both `RuntimeError` and `AttributeError`
+
+**Status**: ✅ FIXED - Test passes
+
+**Test Result**: ✅ PASSED
+
+**Key Learning**:
+
+When iterating through module dictionaries in CKAN 2.11:
+- Flask's `LocalProxy` objects (like `request`, `session`, `g`) cannot be accessed outside request context
+- Some imported modules don't have `__module__` attributes
+- Always use `hasattr()` before accessing potentially missing attributes
+- Wrap attribute access in try-except when dealing with unknown object types
+
+This pattern is important for any CKAN 2.11 extension that dynamically collects functions from modules.
+
+---
+

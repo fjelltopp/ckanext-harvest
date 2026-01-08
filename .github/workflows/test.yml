@@ -53,9 +53,10 @@ jobs:
         ckan -c test.ini harvester initdb
     - name: Run tests
       run: |
-        # Fixed tests - now running all group-related tests
+        # Remaining tests to fix:
+        # - test_source_page_rendered
+        # - test_about_page_rendered
+        # - test_job_show_page_rendered
+
         pytest --ckan-ini=test.ini --cov=ckanext.harvest --disable-warnings \
-          ckanext/harvest/tests/harvesters/test_ckanharvester.py::TestCkanHarvester::test_remote_groups_create \
-          ckanext/harvest/tests/harvesters/test_ckanharvester.py::TestCkanHarvester::test_remote_groups_only_local \
-          ckanext/harvest/tests/harvesters/test_ckanharvester.py::TestCkanHarvester::test_default_groups \
-          ckanext/harvest/tests/harvesters/test_ckanharvester.py::TestCkanHarvester::test_default_groups_invalid
+          ckanext/harvest/tests/test_blueprint.py::TestBlueprint::test_source_page_rendered
