@@ -501,3 +501,76 @@ This pattern is important for any CKAN 2.11 extension that dynamically collects 
 
 ---
 
+### 11. Fix mutable default argument in _get_logic_functions
+
+**Date**: 2026-01-08
+
+**Problem**:
+After implementing the Flask LocalProxy fix in issue #10, running all tests showed 74 failures including many previously passing tests. Tests failed with errors like:
+```
+KeyError: 'id'
+```
+
+When factories tried to create harvest sources, `harvest_source_show` was returning `{'success': True}` instead of actual source data.
+
+**Root Cause**:
+
+Classic Python mutable default argument bug in `_get_logic_functions()`:
+```python
+def _get_logic_functions(module_root, logic_functions={}):
+```
+
+The default empty dict `{}` is created once when the function is defined and reused for all calls. This caused:
+
+1. First call (`get_actions()`): Collects action functions into the dict
+2. Second call (`get_auth_functions()`): Reuses the SAME dict, adds auth functions to it
+3. Result: Auth functions overwrite action functions with the same names
+4. Example: `harvest_source_show` auth function (returns `{'success': True}`) replaced the actual action function that returns source data
+
+This corruption caused factories and tests to fail because when code called `harvest_source_show` action, it actually invoked the auth function instead.
+
+**Solution**:
+
+Changed the default argument from mutable dict to `None`:
+```python
+def _get_logic_functions(module_root, logic_functions=None):
+    if logic_functions is None:
+        logic_functions = {}
+```
+
+This ensures each call gets its own fresh dictionary instead of sharing the same one across all calls.
+
+**Files Modified**:
+- `ckanext/harvest/plugin/__init__.py`:
+  - Line 361: Changed `logic_functions={}` to `logic_functions=None`
+  - Lines 362-363: Added initialization `if logic_functions is None: logic_functions = {}`
+
+**Status**: ✅ FIXED - All tests now run correctly
+
+**Test Result**: Tests that were corrupted by the mutable default dict now pass
+
+**Key Learning**:
+
+Never use mutable objects (dict, list, set) as default arguments in Python:
+- Default arguments are evaluated once when the function is defined
+- The same object is reused for all function calls
+- Use `None` as default and initialize inside the function
+- This is one of Python's most common gotchas
+
+**Pattern to Follow**:
+```python
+# BAD - mutable default
+def func(items=[]):
+    items.append(1)
+    return items
+
+# GOOD - None default
+def func(items=None):
+    if items is None:
+        items = []
+    items.append(1)
+    return items
+```
+
+---
+
