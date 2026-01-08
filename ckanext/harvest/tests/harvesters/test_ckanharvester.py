@@ -261,9 +261,9 @@ class TestCkanHarvester(object):
 
     def test_default_groups(self):
         # Create groups without custom IDs (CKAN 2.11 auto-generates IDs)
-        group1 = Group(name='group1')
+        Group(name='group1')
         group2 = Group(name='group2')
-        group3 = Group(name='group3')
+        Group(name='group3')
 
         # Use group names (or the auto-generated IDs) for default_groups config
         config = {'default_groups': [group2['id'], 'group3'],

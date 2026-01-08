@@ -374,7 +374,7 @@ def _get_logic_functions(module_root, logic_functions=None):
             # Skip items that start with underscore
             if key.startswith('_'):
                 continue
-            
+
             # CKAN 2.11 Flask compatibility:
             # Flask's LocalProxy objects (like 'request') raise RuntimeError
             # when accessed outside of request context. Also, some imported
@@ -383,7 +383,7 @@ def _get_logic_functions(module_root, logic_functions=None):
                 is_callable = hasattr(value, '__call__')
                 # Check if value has __module__ attribute before accessing it
                 has_module_attr = hasattr(value, '__module__')
-                
+
                 if is_callable and has_module_attr:
                     has_correct_module = (value.__module__ == module_path)
                     if has_correct_module:
