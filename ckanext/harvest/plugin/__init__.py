@@ -358,7 +358,9 @@ class Harvest(MixinPlugin, p.SingletonPlugin, DefaultDatasetForm, DefaultTransla
                             ])
 
 
-def _get_logic_functions(module_root, logic_functions={}):
+def _get_logic_functions(module_root, logic_functions=None):
+    if logic_functions is None:
+        logic_functions = {}
 
     for module_name in ['get', 'create', 'update', 'patch', 'delete']:
         module_path = '%s.%s' % (module_root, module_name,)
