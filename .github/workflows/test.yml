@@ -53,10 +53,4 @@ jobs:
         ckan -c test.ini harvester initdb
     - name: Run tests
       run: |
-        # Remaining tests to fix:
-        # - test_source_page_rendered
-        # - test_about_page_rendered
-        # - test_job_show_page_rendered
-
-        pytest --ckan-ini=test.ini --cov=ckanext.harvest --disable-warnings \
-          ckanext/harvest/tests/test_blueprint.py::TestBlueprint::test_source_page_rendered
+        pytest --ckan-ini=test.ini --cov=ckanext.harvest --disable-warnings ckanext/harvest/tests/

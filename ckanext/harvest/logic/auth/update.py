@@ -1,5 +1,48 @@
 from ckan.plugins import toolkit as pt
 from ckanext.harvest.logic.auth import user_is_sysadmin
+import ckan.logic.auth.update as update_auth
+
+
+def package_update(context, data_dict):
+    """
+    Custom package_update authorization for CKAN 2.11 compatibility.
+
+    This function handles the same issue as package_create: in CKAN 2.11,
+    when viewing the edit form (/harvest/edit/<id>), Flask's authorization
+    check happens before the user is loaded into context, causing 403 errors.
+
+    See package_create in logic/auth/create.py for detailed explanation.
+    """
+    # Import Flask request inside function to avoid "outside request context" error
+    # during plugin initialization
+    try:
+        from flask import request
+    except ImportError:
+        request = None
+
+    # Load user from Flask request if not in context (CKAN 2.11 Flask issue)
+    if request and not context.get('user'):
+        user = request.environ.get('REMOTE_USER', '')
+        context['user'] = user
+        if user:
+            try:
+                user_obj = context['model'].User.get(user)
+                context['auth_user_obj'] = user_obj
+            except Exception:
+                pass
+
+    # For sysadmins viewing harvest edit forms, allow access
+    user_obj = context.get('auth_user_obj')
+    if user_obj and user_obj.sysadmin:
+        package = context.get('package')
+        package_type = package.type if package else data_dict.get('type')
+
+        # Allow if editing harvest sources or viewing the edit form (minimal data_dict)
+        if package_type == 'harvest' or (package and not data_dict.get('name')):
+            return {'success': True}
+
+    # Delegate to CKAN's default package_update auth for all other cases
+    return update_auth.package_update(context, data_dict)
 
 
 def harvest_source_update(context, data_dict):
