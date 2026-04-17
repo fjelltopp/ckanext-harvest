@@ -2,10 +2,13 @@ from ckan.plugins import toolkit as pt
 from ckanext.harvest import model as harvest_model
 
 try:
-    from flask import request
+    from flask import request, has_request_context
 except ImportError:
     # Flask not available (shouldn't happen in CKAN 2.11+)
     request = None
+
+    def has_request_context():
+        return False
 
 
 def user_is_sysadmin(context):
@@ -38,7 +41,10 @@ def load_user_from_flask_request(context):
     Returns:
         None (modifies context in-place)
     """
-    if not request:
+    # Use has_request_context() instead of `if not request`: the Flask
+    # `request` LocalProxy raises RuntimeError when evaluated outside an
+    # active request context (e.g. background queue, CLI).
+    if not has_request_context():
         return
 
     user = context.get('user', '')
@@ -72,7 +78,7 @@ def is_harvest_form_view():
     a sparse data_dict. Anchored on the request path so unrelated callers
     that happen to pass an empty data_dict do not bypass auth.
     """
-    if not request:
+    if not has_request_context():
         return False
     try:
         if request.method != 'GET':
