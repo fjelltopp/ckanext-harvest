@@ -1,5 +1,9 @@
 from ckan.plugins import toolkit as pt
-from ckanext.harvest.logic.auth import user_is_sysadmin, load_user_from_flask_request
+from ckanext.harvest.logic.auth import (
+    user_is_sysadmin,
+    load_user_from_flask_request,
+    is_harvest_form_view,
+)
 import ckan.logic.auth.create as create_auth
 
 
@@ -19,12 +23,12 @@ def package_create(context, data_dict):
     try:
         is_sysadmin = user_is_sysadmin(context)
 
-        # For harvest packages OR empty data_dict (form viewing), allow sysadmins
-        # NOTE: In CKAN 2.11, when rendering the harvest creation form (GET on /harvest/new),
-        #       package_create can be called with an empty data_dict. In this specific "view form"
-        #       case, we rely on an empty data_dict to grant sysadmins access to the form.
-        #       This is a Flask-specific behavior where auth checks occur before form rendering.
-        if is_sysadmin and (package_type == 'harvest' or not data_dict):
+        # Allow sysadmins for harvest packages, or for the GET render of the
+        # harvest creation form (CKAN 2.11 calls this auth before the view
+        # renders with a sparse data_dict). The form-view case is gated on
+        # the request path so an empty data_dict from any other caller does
+        # not silently skip CKAN's normal package_create auth chain.
+        if is_sysadmin and (package_type == 'harvest' or is_harvest_form_view()):
             return {'success': True}
     except Exception:
         # Intentionally ignore failures in sysadmin check so that authorization

@@ -51,12 +51,39 @@ def load_user_from_flask_request(context):
                 model = context.get('model')
                 if model:
                     user_obj = model.User.get(user)
-                    if user_obj:
+                    # Mirror CKAN's own _get_user contract: only inject active
+                    # users so a deleted/blocked account whose name lingers in
+                    # REMOTE_USER (e.g. from a still-valid session cookie) does
+                    # not retain auth privileges.
+                    if user_obj and getattr(user_obj, 'state', None) == 'active':
                         context['auth_user_obj'] = user_obj
         except Exception:
             # Intentionally ignore failures when loading user from request
             # so that authorization can safely fall back to CKAN defaults
             pass
+
+
+def is_harvest_form_view():
+    """
+    True only for GET requests serving the harvest creation/edit forms.
+
+    Used to safely identify the "form view" case in CKAN 2.11 where
+    package_create/package_update auth fires before the form renders with
+    a sparse data_dict. Anchored on the request path so unrelated callers
+    that happen to pass an empty data_dict do not bypass auth.
+    """
+    if not request:
+        return False
+    try:
+        if request.method != 'GET':
+            return False
+        from ckanext.harvest import utils
+        path = (request.path or '').rstrip('/')
+        prefix = '/{0}/'.format(utils.DATASET_TYPE_NAME)
+        return path.endswith('/{0}/new'.format(utils.DATASET_TYPE_NAME)) \
+            or (prefix + 'edit/') in (path + '/')
+    except Exception:
+        return False
 
 
 def _get_object(context, data_dict, name, class_name):

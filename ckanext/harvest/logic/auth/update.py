@@ -1,5 +1,9 @@
 from ckan.plugins import toolkit as pt
-from ckanext.harvest.logic.auth import user_is_sysadmin, load_user_from_flask_request
+from ckanext.harvest.logic.auth import (
+    user_is_sysadmin,
+    load_user_from_flask_request,
+    is_harvest_form_view,
+)
 import ckan.logic.auth.update as update_auth
 
 
@@ -23,14 +27,12 @@ def package_update(context, data_dict):
         package = context.get('package')
         package_type = package.type if package else data_dict.get('type')
 
-        # Allow if editing harvest sources or viewing the edit form (minimal data_dict)
-        # NOTE: In CKAN 2.11, when rendering the harvest edit form (GET on /harvest/edit/<id>),
-        #       package_update can be called with a minimal data_dict that does not yet include
-        #       the package name. In that specific "view form" case, we rely on the combination
-        #       of (a) having a package object in the context and (b) data_dict missing 'name'
-        #       to grant sysadmins access to the edit form. This should not be treated as a
-        #       general indicator that a package update without a name is always safe.
-        if package_type == 'harvest' or (package and not data_dict.get('name')):
+        # Allow sysadmins for harvest packages, or for the GET render of a
+        # harvest edit form (CKAN 2.11 calls this auth before the view renders
+        # with a sparse data_dict). The form-view case is gated on the request
+        # path so a missing 'name' from any other caller does not silently
+        # skip CKAN's normal package_update auth chain.
+        if package_type == 'harvest' or is_harvest_form_view():
             return {'success': True}
 
     # Delegate to CKAN's default package_update auth for all other cases
