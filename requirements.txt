@@ -1,6 +1,7 @@
 ckantoolkit>=0.0.7
 pika>=1.1.0
-pyOpenSSL==18.0.0
+pyOpenSSL>=23.2.0
+cryptography>=41.0.0
 redis
 requests>=2.11.1
 six>=1.12.0

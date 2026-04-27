@@ -1,5 +1,42 @@
 from ckan.plugins import toolkit as pt
-from ckanext.harvest.logic.auth import user_is_sysadmin
+from ckanext.harvest.logic.auth import (
+    user_is_sysadmin,
+    load_user_from_flask_request,
+    is_harvest_form_view,
+)
+import ckan.logic.auth.create as create_auth
+
+
+def package_create(context, data_dict):
+    """
+    Authorization for creating packages (harvest and regular types).
+
+    In CKAN 2.11, this auth function is called before showing the creation form.
+    When viewing forms (empty data_dict), allow sysadmins to proceed.
+    """
+    # Load user from Flask request if not already in context (CKAN 2.11 Flask issue)
+    load_user_from_flask_request(context)
+
+    package_type = data_dict.get('type', '')
+
+    # Check if user is sysadmin
+    try:
+        is_sysadmin = user_is_sysadmin(context)
+
+        # Allow sysadmins for harvest packages, or for the GET render of the
+        # harvest creation form (CKAN 2.11 calls this auth before the view
+        # renders with a sparse data_dict). The form-view case is gated on
+        # the request path so an empty data_dict from any other caller does
+        # not silently skip CKAN's normal package_create auth chain.
+        if is_sysadmin and (package_type == 'harvest' or is_harvest_form_view()):
+            return {'success': True}
+    except Exception:
+        # Intentionally ignore failures in sysadmin check so that authorization
+        # can fall back to CKAN's default package_create logic below
+        pass
+
+    # For non-sysadmins or non-harvest packages, use CKAN's default auth
+    return create_auth.package_create(context, data_dict)
 
 
 def harvest_source_create(context, data_dict):
@@ -35,7 +72,8 @@ def harvest_job_create(context, data_dict):
 
     context['package'] = pkg
     try:
-        pt.check_access('package_update', context, data_dict)
+        # Pass the package id to package_update for authorization check
+        pt.check_access('package_update', context, {'id': pkg.id})
         return {'success': True}
     except pt.NotAuthorized:
         return {'success': False,

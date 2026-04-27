@@ -1,6 +1,15 @@
 from ckan.plugins import toolkit as pt
 from ckanext.harvest import model as harvest_model
 
+try:
+    from flask import request, has_request_context
+except ImportError:
+    # Flask not available (shouldn't happen in CKAN 2.11+)
+    request = None
+
+    def has_request_context():
+        return False
+
 
 def user_is_sysadmin(context):
     '''
@@ -15,6 +24,72 @@ def user_is_sysadmin(context):
         raise pt.Objectpt.ObjectNotFound('User {0} not found').format(user)
 
     return user_obj.sysadmin
+
+
+def load_user_from_flask_request(context):
+    """
+    Load user from Flask request environ into context if not already present.
+
+    In CKAN 2.11, when accessing harvest forms, authorization checks happen
+    before the user is loaded into context, even though REMOTE_USER is set
+    in the Flask request environ. This helper ensures the user is loaded
+    for proper authorization checks.
+
+    Args:
+        context: CKAN context dict
+
+    Returns:
+        None (modifies context in-place)
+    """
+    # Use has_request_context() instead of `if not request`: the Flask
+    # `request` LocalProxy raises RuntimeError when evaluated outside an
+    # active request context (e.g. background queue, CLI).
+    if not has_request_context():
+        return
+
+    user = context.get('user', '')
+    if not user:
+        try:
+            user = request.environ.get('REMOTE_USER', '')
+            if user:
+                context['user'] = user
+                # Load user object into context for sysadmin checks
+                model = context.get('model')
+                if model:
+                    user_obj = model.User.get(user)
+                    # Mirror CKAN's own _get_user contract: only inject active
+                    # users so a deleted/blocked account whose name lingers in
+                    # REMOTE_USER (e.g. from a still-valid session cookie) does
+                    # not retain auth privileges.
+                    if user_obj and getattr(user_obj, 'state', None) == 'active':
+                        context['auth_user_obj'] = user_obj
+        except Exception:
+            # Intentionally ignore failures when loading user from request
+            # so that authorization can safely fall back to CKAN defaults
+            pass
+
+
+def is_harvest_form_view():
+    """
+    True only for GET requests serving the harvest creation/edit forms.
+
+    Used to safely identify the "form view" case in CKAN 2.11 where
+    package_create/package_update auth fires before the form renders with
+    a sparse data_dict. Anchored on the request path so unrelated callers
+    that happen to pass an empty data_dict do not bypass auth.
+    """
+    if not has_request_context():
+        return False
+    try:
+        if request.method != 'GET':
+            return False
+        from ckanext.harvest import utils
+        path = (request.path or '').rstrip('/')
+        prefix = '/{0}/'.format(utils.DATASET_TYPE_NAME)
+        return path.endswith('/{0}/new'.format(utils.DATASET_TYPE_NAME)) \
+            or (prefix + 'edit/') in (path + '/')
+    except Exception:
+        return False
 
 
 def _get_object(context, data_dict, name, class_name):

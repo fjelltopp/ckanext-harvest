@@ -16,9 +16,11 @@ def _assert_in_body(string, response):
 @pytest.mark.usefixtures('clean_db', 'clean_index', 'harvest_setup')
 class TestBlueprint():
 
-    def setup(self):
+    def setup_method(self):
         sysadmin = factories.Sysadmin()
-        self.extra_environ = {'REMOTE_USER': sysadmin['name'].encode('ascii')}
+        # CKAN 2.11 uses Flask - REMOTE_USER should be string, not bytes
+        self.extra_environ = {'REMOTE_USER': sysadmin['name']}
+        self.sysadmin = sysadmin
 
     def test_index_page_is_rendered(self, app):
 
@@ -64,7 +66,7 @@ class TestBlueprint():
         job = harvest_factories.HarvestJob(source=source_obj)
 
         sysadmin = factories.Sysadmin()
-        env = {"REMOTE_USER": sysadmin['name'].encode('ascii')}
+        env = {"REMOTE_USER": sysadmin['name']}
 
         url = url_for('harvest_admin', id=source_obj.id)
 
@@ -89,7 +91,7 @@ class TestBlueprint():
         job = harvest_factories.HarvestJob()
 
         sysadmin = factories.Sysadmin()
-        env = {"REMOTE_USER": sysadmin['name'].encode('ascii')}
+        env = {"REMOTE_USER": sysadmin['name']}
 
         url = url_for('harvest_job_list', source=job['source_id'])
 
@@ -102,7 +104,7 @@ class TestBlueprint():
         job = harvest_factories.HarvestJob()
 
         sysadmin = factories.Sysadmin()
-        env = {"REMOTE_USER": sysadmin['name'].encode('ascii')}
+        env = {"REMOTE_USER": sysadmin['name']}
 
         url = url_for('harvest_job_show_last', source=job['source_id'])
 

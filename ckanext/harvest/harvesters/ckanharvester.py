@@ -4,7 +4,6 @@ import requests
 from requests.exceptions import HTTPError, RequestException
 
 import datetime
-from urllib3.contrib import pyopenssl
 
 from six.moves.urllib.parse import urlencode
 from ckan import model
@@ -40,8 +39,6 @@ class CKANHarvester(HarvesterBase):
         api_key = self.config.get('api_key')
         if api_key:
             headers['Authorization'] = api_key
-
-        pyopenssl.inject_into_urllib3()
 
         try:
             http_request = requests.get(url, headers=headers)
@@ -442,12 +439,12 @@ class CKANHarvester(HarvesterBase):
                                 log.error('Could not get remote group %s', group_)
                                 continue
 
-                            for key in ['packages', 'created', 'users', 'groups', 'tags', 'extras', 'display_name']:
+                            for key in ['packages', 'created', 'users', 'groups', 'tags', 'extras', 'display_name', 'id']:
                                 group.pop(key, None)
 
-                            get_action('group_create')(base_context.copy(), group)
-                            log.info('Group %s has been newly created', group_)
-                            validated_groups.append({'id': group['id'], 'name': group['name']})
+                            created_group = get_action('group_create')(base_context.copy(), group)
+                            log.info('Group %s has been newly created', created_group)
+                            validated_groups.append({'id': created_group['id'], 'name': created_group['name']})
 
                 package_dict['groups'] = validated_groups
 

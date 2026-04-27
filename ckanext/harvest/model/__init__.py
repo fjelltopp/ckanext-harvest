@@ -11,7 +11,6 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import backref, relation
 from sqlalchemy.exc import InvalidRequestError
 
-from ckan import model
 from ckan.model.meta import metadata, mapper, Session
 from ckan.model.types import make_uuid
 from ckan.model.domain_object import DomainObject
@@ -47,55 +46,62 @@ def setup():
         define_harvester_tables()
         log.debug('Harvest tables defined in memory')
 
-    if not model.package_table.exists():
+    # Check if database is initialized by using Inspector
+    from ckan.model.meta import engine
+    try:
+        inspector = Inspector.from_engine(engine)
+        existing_tables = inspector.get_table_names()
+    except Exception as e:
+        log.debug('Harvest table creation deferred: %s', e)
+        return
+
+    if 'package' not in existing_tables:
         log.debug('Harvest table creation deferred')
         return
 
-    if not harvest_source_table.exists():
+    if 'harvest_source' not in existing_tables:
 
         # Create each table individually rather than
         # using metadata.create_all()
-        harvest_source_table.create()
-        harvest_job_table.create()
-        harvest_object_table.create()
-        harvest_gather_error_table.create()
-        harvest_object_error_table.create()
-        harvest_object_extra_table.create()
-        harvest_log_table.create()
+        harvest_source_table.create(bind=engine)
+        harvest_job_table.create(bind=engine)
+        harvest_object_table.create(bind=engine)
+        harvest_gather_error_table.create(bind=engine)
+        harvest_object_error_table.create(bind=engine)
+        harvest_object_extra_table.create(bind=engine)
+        harvest_log_table.create(bind=engine)
 
         log.debug('Harvest tables created')
     else:
-        from ckan.model.meta import engine
         log.debug('Harvest tables already exist')
         # Check if existing tables need to be updated
-        inspector = Inspector.from_engine(engine)
 
         # Check if harvest_log table exist - needed for existing users
-        if 'harvest_log' not in inspector.get_table_names():
-            harvest_log_table.create()
+        if 'harvest_log' not in existing_tables:
+            harvest_log_table.create(bind=engine)
 
         # Check if harvest_object has a index
         index_names = [index['name'] for index in inspector.get_indexes("harvest_object")]
         if "harvest_job_id_idx" not in index_names:
             log.debug('Creating index for harvest_object')
-            Index("harvest_job_id_idx", harvest_object_table.c.harvest_job_id).create()
+            Index("harvest_job_id_idx", harvest_object_table.c.harvest_job_id).create(bind=engine)
 
         if "harvest_source_id_idx" not in index_names:
             log.debug('Creating index for harvest source')
-            Index("harvest_source_id_idx", harvest_object_table.c.harvest_source_id).create()
+            Index("harvest_source_id_idx", harvest_object_table.c.harvest_source_id).create(bind=engine)
 
         if "package_id_idx" not in index_names:
             log.debug('Creating index for package')
-            Index("package_id_idx", harvest_object_table.c.package_id).create()
+            Index("package_id_idx", harvest_object_table.c.package_id).create(bind=engine)
 
         if "guid_idx" not in index_names:
             log.debug('Creating index for guid')
-            Index("guid_idx", harvest_object_table.c.guid).create()
+            Index("guid_idx", harvest_object_table.c.guid).create(bind=engine)
 
         index_names = [index['name'] for index in inspector.get_indexes("harvest_object_extra")]
         if "harvest_object_id_idx" not in index_names:
             log.debug('Creating index for harvest_object_extra')
-            Index("harvest_object_id_idx", harvest_object_extra_table.c.harvest_object_id).create()
+            Index("harvest_object_id_idx", harvest_object_extra_table.c.harvest_object_id).create(bind=engine)
 
 
 class HarvestError(Exception):

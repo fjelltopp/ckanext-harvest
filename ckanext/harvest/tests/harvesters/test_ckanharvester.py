@@ -46,7 +46,7 @@ class TestCkanHarvester(object):
         obj_ids = harvester.gather_stage(job)
 
         assert job.gather_errors == []
-        assert type(obj_ids) == list
+        assert isinstance(obj_ids, list)
         assert len(obj_ids) == len(mock_ckan.DATASETS)
         harvest_object = harvest_model.HarvestObject.get(obj_ids[0])
         assert harvest_object.guid == mock_ckan.DATASETS[0]['id']
@@ -168,8 +168,8 @@ class TestCkanHarvester(object):
             harvester=CKANHarvester(),
             config=json.dumps(config))
         assert 'dataset1-id' in results_by_guid
-        # Check that the remote group was created locally
-        call_action('group_show', {}, id=mock_ckan.GROUPS[0]['id'])
+        # Check that the remote group was created locally (by name, not id, since id is auto-generated in CKAN 2.11)
+        call_action('group_show', {}, id=mock_ckan.GROUPS[0]['name'])
 
     def test_harvest_info_in_package_show(self):
         results_by_guid = run_harvest(
@@ -185,8 +185,8 @@ class TestCkanHarvester(object):
         assert 'harvest_source_title' in extras_dict
 
     def test_remote_groups_only_local(self):
-        # Create an existing group
-        Group(id='group1-id', name='group1')
+        # Create an existing group (without specifying ID - CKAN 2.11 auto-generates IDs)
+        local_group = Group(name='group1')
 
         config = {'remote_groups': 'only_local'}
         results_by_guid = run_harvest(
@@ -197,7 +197,12 @@ class TestCkanHarvester(object):
 
         # Check that the dataset was added to the existing local group
         dataset = call_action('package_show', {}, id=mock_ckan.DATASETS[0]['id'])
-        assert dataset['groups'][0]['id'] == mock_ckan.DATASETS[0]['groups'][0]['id']
+
+        # In CKAN 2.11, group IDs are auto-generated and won't match the remote ID
+        # The harvester should match by name and use the local group's ID
+        assert len(dataset['groups']) == 1
+        assert dataset['groups'][0]['name'] == 'group1'
+        assert dataset['groups'][0]['id'] == local_group['id']
 
         # Check that the other remote group was not created locally
         with pytest.raises(toolkit.ObjectNotFound):
@@ -255,11 +260,13 @@ class TestCkanHarvester(object):
         assert 'default_tags must be a list of dictionaries' in str(harvest_context.value)
 
     def test_default_groups(self):
-        Group(id='group1-id', name='group1')
-        Group(id='group2-id', name='group2')
-        Group(id='group3-id', name='group3')
+        # Create groups without custom IDs (CKAN 2.11 auto-generates IDs)
+        Group(name='group1')
+        group2 = Group(name='group2')
+        Group(name='group3')
 
-        config = {'default_groups': ['group2-id', 'group3'],
+        # Use group names (or the auto-generated IDs) for default_groups config
+        config = {'default_groups': [group2['id'], 'group3'],
                   'remote_groups': 'only_local'}
         tmp_c = toolkit.c
         try:
@@ -278,10 +285,11 @@ class TestCkanHarvester(object):
         group_names = set(group['name'] for group in groups)
         # group1 comes from the harvested dataset
         # group2 & 3 come from the default_groups
-        assert group_names, set(('group1', 'group2' == 'group3'))
+        assert group_names == set(('group1', 'group2', 'group3'))
 
     def test_default_groups_invalid(self):
-        Group(id='group2-id', name='group2')
+        # Create group without custom ID (CKAN 2.11 auto-generates IDs)
+        Group(name='group2')
 
         # should be list of strings
         config = {'default_groups': [{'name': 'group2'}]}
@@ -320,11 +328,10 @@ class TestCkanHarvester(object):
                 config=json.dumps(config))
         assert 'default_extras must be a dictionary' in str(harvest_context.value)
 
-    @patch('ckanext.harvest.harvesters.ckanharvester.pyopenssl.inject_into_urllib3')
     @patch('ckanext.harvest.harvesters.ckanharvester.CKANHarvester.config')
     @patch('ckanext.harvest.harvesters.ckanharvester.requests.get', side_effect=RequestException('Test.value'))
     def test_get_content_handles_request_exception(
-        self, mock_requests_get, mock_config, mock_pyopenssl_inject
+        self, mock_requests_get, mock_config
     ):
         mock_config.return_value = {}
 
@@ -342,11 +349,10 @@ class TestCkanHarvester(object):
             self.request = Mock()
             self.request.url = "http://test.example.gov.uk"
 
-    @patch('ckanext.harvest.harvesters.ckanharvester.pyopenssl.inject_into_urllib3')
     @patch('ckanext.harvest.harvesters.ckanharvester.CKANHarvester.config')
     @patch('ckanext.harvest.harvesters.ckanharvester.requests.get', side_effect=MockHTTPError())
     def test_get_content_handles_http_error(
-        self, mock_requests_get, mock_config, mock_pyopenssl_inject
+        self, mock_requests_get, mock_config
     ):
         mock_config.return_value = {}
 
